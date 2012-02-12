@@ -1,0 +1,8 @@
+#!/bin/bash
+for inpath in "$@"
+do
+  outpath=target/generated-sources/jcpp/$inpath.java
+  mkdir -p `dirname $outpath`
+  gcc -P -CC -x c -E -I src/main/jcpp/include -I src/main/jcpp/src \
+    src/main/jcpp/$inpath.jcpp -o $outpath
+done

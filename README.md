@@ -5,12 +5,12 @@ Hadoop-LZO is a project to bring splittable LZO compression to Hadoop.  LZO is a
 
 ### Origins
 
-This project builds off the great work done at [http://code.google.com/p/hadoop-gpl-compression](http://code.google.com/p/hadoop-gpl-compression).  As of issue 41, the differences in this codebase are the following.
+This project is built out of the effort of many individuals:
 
-- it fixes a few bugs in hadoop-gpl-compression -- notably, it allows the decompressor to read small or uncompressable lzo files, and also fixes the compressor to follow the lzo standard when compressing small or uncompressible chunks.  it also fixes a number of inconsistenly caught and thrown exception cases that can occur when the lzo writer gets killed mid-stream, plus some other smaller issues (see commit log).
-- it adds the ability to work with Hadoop streaming via the com.apache.hadoop.mapred.DeprecatedLzoTextInputFormat class
-- it adds an easier way to index lzo files (com.hadoop.compression.lzo.LzoIndexer)
-- it adds an even easier way to index lzo files, in a distributed manner (com.hadoop.compression.lzo.DistributedLzoIndexer)
+- Chris Douglas, Hong Tang, Owen O'Malley contributed the original work at [http://code.google.com/a/apache-extras.org/p/hadoop-gpl-compression/](http://code.google.com/a/apache-extras.org/p/hadoop-gpl-compression/)
+- Angus He, Dmitriy Ryaboy, Ilya Maykov, James Seigel, Jingguo Yao, Kevin Weil, Mark H. Butler, Michael G. Noll, Raghu Angadi, Todd Lipcon, Travis Crawford contributed the work on fixing lzop compatibility and splittable lzop. [https://github.com/kevinweil/hadoop-lzo](https://github.com/kevinweil/hadoop-lzo)
+- Shevek contributed the work to port lzo into Java rather than use JNI [https://github.com/Karmasphere/lzo-java](https://github.com/Karmasphere/lzo-java)
+- Owen O'Malley integrated the forks and switched to Maven [https://github.com/hortonworks/hadoop-lzo](https://github.com/hortonworks/hadoop-lzo)
 
 ### Hadoop and LZO, Together at Last
 
@@ -18,20 +18,15 @@ LZO is a wonderful compression scheme to use with Hadoop because it's incredibly
 
 ### Building and Configuring
 
-To get started, see [http://code.google.com/p/hadoop-gpl-compression/wiki/FAQ](http://code.google.com/p/hadoop-gpl-compression/wiki/FAQ).  This project is built exactly the same way; please follow the answer to "How do I configure Hadoop to use these classes?" on that page.
+To get started, compile this project using 'mvn clean package'. The jar is also available from Maven central.
 
-You can read more about Hadoop, LZO, and how we're using it at Twitter at [http://www.cloudera.com/blog/2009/11/17/hadoop-at-twitter-part-1-splittable-lzo-compression/](http://www.cloudera.com/blog/2009/11/17/hadoop-at-twitter-part-1-splittable-lzo-compression/).
+You can read more about Hadoop, LZO, and how Twitter is using it at [http://engineering.twitter.com/2010/04/hadoop-at-twitter.html](http://engineering.twitter.com/2010/04/hadoop-at-twitter.html).
 
-Once the libs are built and installed, you may want to add them to the class paths and library paths.  That is, in hadoop-env.sh, set
+Once the jar is built and installed, you may want to add them to the class paths.  That is, in hadoop-env.sh, set
 
-        export HADOOP_CLASSPATH=/path/to/your/hadoop-lzo-lib.jar
-        export JAVA_LIBRARY_PATH=/path/to/hadoop-lzo-native-libs:/path/to/standard-hadoop-native-libs
+        export HADOOP_CLASSPATH=/path/to/your/hadoop-lzo.jar
 
-Note that there seems to be a bug in /path/to/hadoop/bin/hadoop; comment out the line
-
-        JAVA_LIBRARY_PATH=''
-
-because it keeps Hadoop from keeping the alteration you made to JAVA_LIBRARY_PATH above.  (Update: see [https://issues.apache.org/jira/browse/HADOOP-6453](https://issues.apache.org/jira/browse/HADOOP-6453)).  Make sure you restart your jobtrackers and tasktrackers after uploading and changing configs so that they take effect.
+Make sure you restart your jobtrackers and tasktrackers after uploading and changing configs so that they take effect.
 
 ### Using Hadoop and LZO
 
@@ -40,7 +35,7 @@ The project provides LzoInputStream and LzoOutputStream wrapping regular streams
 
 #### Indexing LZO Files
 
-At this point, you should also be able to use the indexer to index lzo files in Hadoop (recall: this makes them splittable, so that they can be analyzed in parallel in a mapreduce job).  Imagine that big_file.lzo is a 1 GB LZO file. You have two options:
+At this point, you should also be able to use the indexer to index lzo files in Hadoop (recall: this makes them splittable, so that they can be analyzed in parallel in a mapreduce job).  Imagine that big_file.lzo is a 1 GB LZO file. You have three options:
 
 - index it in-process via:
 
@@ -49,6 +44,8 @@ At this point, you should also be able to use the indexer to index lzo files in 
 - index it in a map-reduce job via:
 
         hadoop jar /path/to/your/hadoop-lzo.jar com.hadoop.compression.lzo.DistributedLzoIndexer big_file.lzo
+
+- index the files as they are written by configuring LzoTextOutputFormat
 
 Either way, after 10-20 seconds there will be a file named big_file.lzo.index.  The newly-created index file tells the LzoTextInputFormat's getSplits function how to break the LZO file into splits that can be decompressed and processed in parallel.  Alternatively, if you specify a directory instead of a filename, both indexers will recursively walk the directory structure looking for .lzo files, indexing any that do not already have corresponding .lzo.index files.
 
